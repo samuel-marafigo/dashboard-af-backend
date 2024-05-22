@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,7 +39,8 @@ public class AttendanceService {
             List<Map<String, Object>> healthUnits = objectMapper.readValue(
                     Paths.get(healthUnitsJsonPath).toFile(), new TypeReference<List<Map<String, Object>>>() {});
 
-            LocalDateTime now = LocalDateTime.now();
+            ZoneId zoneId = ZoneId.of("America/Sao_Paulo"); // Timezone -3
+            ZonedDateTime now = ZonedDateTime.now(zoneId);
 
             for (Map<String, Object> unit : healthUnits) {
                 int unitId = (int) unit.get("id");
@@ -53,7 +56,7 @@ public class AttendanceService {
                             .map(AttendanceDTO.Retorno::getQuantidade)
                             .orElse(0.0);
 
-                    Attendance attendance = new Attendance(unitId, now, unitName, quantidade);
+                    Attendance attendance = new Attendance(unitId, now.toLocalDateTime(), unitName, quantidade);
 
                     attendanceRepository.save(attendance);
                 }
@@ -66,8 +69,9 @@ public class AttendanceService {
     }
 
     public List<RecentAttendanceDTO> getMaxQuantitiesForToday() {
-        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
-        LocalDateTime endOfDay = LocalDateTime.now();
+        ZoneId zoneId = ZoneId.of("America/Sao_Paulo"); // Timezone -3
+        LocalDateTime startOfDay = ZonedDateTime.now(zoneId).toLocalDate().atStartOfDay(zoneId).toLocalDateTime();
+        LocalDateTime endOfDay = ZonedDateTime.now(zoneId).toLocalDateTime();
 
         List<Object[]> results = attendanceRepository.findMaxQuantitiesForToday(startOfDay, endOfDay);
         return results.stream()
